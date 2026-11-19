@@ -20,6 +20,7 @@ pub mod mocks;
 pub mod sandbox;
 pub mod simulation;
 pub mod snapshot;
+pub mod synthetic_monitor;
 pub mod upgrade;
 #[cfg(test)]
 mod amount_properties;
