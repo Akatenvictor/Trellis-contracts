@@ -1,6 +1,7 @@
 #![no_std]
 pub mod abuse;
 pub mod accessibility;
+pub mod admin_config_audit;
 pub mod analytics;
 pub mod audit_ledger;
 pub mod auth;
@@ -74,6 +75,8 @@ pub mod retention;
 pub mod sanitize;
 pub mod scan_guard;
 pub mod semantic;
+pub mod session_revocation;
+pub mod side_effect_checkpoint;
 pub mod snapshot;
 pub mod snapshot_restore;
 pub mod storage;
@@ -112,10 +115,25 @@ aggregate_events, is_fully_suppressed, is_safe_dimension, is_sensitive_dimension
 AggregateBucket, AnalyticsReport, PrivacyConfig, RawObservation, ANALYTICS_METRIC_VERSION,
 };
 pub use auth::{
-accept_ownership_transfer, cancel_ownership_transfer, get_admin,
-get_pending_ownership_transfer, has_permission, initialize_admin, propose_ownership_transfer,
+accept_ownership_transfer, cancel_ownership_transfer, expire_ownership_transfer, get_admin,
+get_pending_ownership_transfer, has_permission, initialize_admin, is_ownership_transfer_expired,
+ownership_transfer_time_remaining, propose_ownership_transfer, reject_ownership_transfer,
 require_admin, require_not_paused, require_permission, role_for_permission, set_admin,
 PendingOwnershipTransfer, Permission, Role,
+};
+pub use admin_config_audit::{
+    compute_evidence_hash, get_config_evidence, latest_config_version, record_config_change,
+    rollback_config_change, verify_config_evidence, AdminConfigEvidence, ConfigEvidenceStatus,
+};
+pub use session_revocation::{
+    derive_token_id, get_session_token, get_subject_security_state, issue_session_token,
+    revoke_session_token, trigger_security_revocation, validate_session_token, SecurityEventKind,
+    SessionToken, SubjectSecurityState, TokenStatus,
+};
+pub use side_effect_checkpoint::{
+    begin_side_effect, commit_side_effect, derive_effect_id, fail_side_effect,
+    get_side_effect_checkpoint, rollback_side_effect, BeginEffectOutcome, SideEffectCheckpoint,
+    SideEffectKind, SideEffectState, DEFAULT_MAX_EFFECT_RETRIES,
 };
 pub use backfill::{
 advance_checkpoint, begin_backfill, clear_checkpoint, complete_backfill, dedupe_items,

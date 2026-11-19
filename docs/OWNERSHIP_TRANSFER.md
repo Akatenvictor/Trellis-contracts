@@ -1,61 +1,34 @@
-# Ownership transfer: expiry and audit history
+# Safe Ownership Transfer with Pending Acceptance and Expiry (Issue #286)
 
-The shared admin identity changes hands in two steps (`shared::auth`):
+## Overview
 
-1. `propose_ownership_transfer(current_owner, target, expiry)`: admin only.
-   `expiry` is a ledger timestamp and must be in the future.
-2. `accept_ownership_transfer(target)`: only the proposed target, and only
-   while `now <= expiry`. Ownership (the stored admin and the `Admin` role)
-   moves atomically.
+`shared::auth` implements a two-step administrative ownership transfer with explicit pending acceptance, expiry enforcement, owner cancellation, target rejection, and permissionless expiry cleanup. Ownership (`KEY_ADMIN` and `Role::Admin`) never changes on proposal alone; the designated `target_owner` must explicitly accept before `expiry`.
 
-The current owner can withdraw the proposal at any time with
-`cancel_ownership_transfer`.
+## Public Surface
 
-## Audit history (Issue #450)
-
-Every step appends one `OwnershipAuditEntry` through
-`shared::ownership_history`. Entries are never rewritten or removed.
-
-| `action` | Written when | `actor` |
+| Function | Caller | Behavior |
 |---|---|---|
-| `Proposed` | a proposal is stored | current owner |
-| `Accepted` | the target accepts before expiry | new owner |
-| `Cancelled` | the current owner cancels | current owner |
-| `Expired` | `expire_ownership_transfer` clears a lapsed proposal, an accept arrives too late, or a new proposal replaces a lapsed one | whoever triggered it |
+| `propose_ownership_transfer(env, current_owner, target_owner, expiry)` | Current admin | Creates `PendingOwnershipTransfer` if `expiry > now`, `target_owner != current_owner`, and no unexpired transfer is pending. |
+| `accept_ownership_transfer(env, caller)` | `target_owner` | Verifies `now <= expiry`, transfers `KEY_ADMIN` and `Role::Admin`, revokes `Role::Admin` from `current_owner`, clears pending record. |
+| `cancel_ownership_transfer(env, caller)` | Current admin | Clears pending transfer before acceptance. |
+| `reject_ownership_transfer(env, caller)` | `target_owner` | Explicitly declines a pending transfer and clears the pending record so the owner can propose a different target immediately. |
+| `expire_ownership_transfer(env)` | Permissionless | Clears a pending transfer once `now > expiry`. |
+| `is_ownership_transfer_expired(env)` | Read-only | Returns `Option<bool>` indicating whether a pending transfer has passed `expiry`. |
+| `ownership_transfer_time_remaining(env)` | Read-only | Returns `Option<u64>` seconds remaining before `expiry`. |
 
-Each entry also stores `previous_owner`, `target_owner`, `expiry`, and the
-ledger timestamp and sequence. Read them with:
+## Operational Edge Cases
 
-- `ownership_history(start, limit)`: oldest first; `limit` is 1 to 50.
-- `get_ownership_history_entry(seq)` and `ownership_history_len()`.
+1. **Expired proposal blocking new proposals:** If a transfer expires without acceptance, `propose_ownership_transfer` allows overwriting it (`now > existing.expiry`), or any caller may run `expire_ownership_transfer` to clear it explicitly.
+2. **Self-transfer or past expiry:** Rejected immediately with `Error::InvalidArgument`.
+3. **Target rejection:** If the wrong address was nominated, the target can call `reject_ownership_transfer` (or the owner can call `cancel_ownership_transfer`) without waiting for `expiry`.
+4. **Concurrent proposal:** While `now <= existing.expiry`, a second `propose_ownership_transfer` fails with `Error::TransferAlreadyPending`.
 
-An `("auth", "own_hist")` event carries each entry, for indexers.
+## Recovery and Rollback Behavior
 
-## Expiry edge cases
+- **Before acceptance:** Ownership remains with `current_owner`. Rollback is `cancel_ownership_transfer` (by owner) or `reject_ownership_transfer` (by target).
+- **After expiry:** Call `expire_ownership_transfer` (or directly `propose_ownership_transfer` with a new target/deadline).
+- **After acceptance:** Ownership has atomically moved to `target_owner`. Reversing requires the new owner to initiate a new `propose_ownership_transfer` back to the prior owner.
 
-- **Expiry is inclusive.** At exactly `expiry` the proposal can still be
-  accepted, and `expire_ownership_transfer` returns `InvalidArgument`.
-- **Late accept.** `accept_ownership_transfer` after expiry returns
-  `TransferExpired`. Inside a contract invocation an error rolls back every
-  write that invocation made, including the cleanup it attempts. Use
-  `expire_ownership_transfer(caller)` to clear a lapsed proposal for good. It
-  is permissionless but requires the caller's signature, so the history names
-  a real actor.
-- **Re-proposing.** A new proposal is rejected with `TransferAlreadyPending`
-  while the old one is live. Once the old one has lapsed, the new proposal
-  replaces it and an `Expired` entry for the old one is written first.
-- **Unauthorized calls** (a stranger proposing, cancelling or accepting) fail
-  before any write and leave no history.
+## Contract Preservation
 
-## Recovery
-
-A transfer to the wrong address can be cancelled until it is accepted. After
-acceptance, the new owner has to transfer back with a fresh proposal; the
-history keeps both transfers.
-
-## Compatibility
-
-The history uses its own storage keys (`OwnershipHistoryKey`). The
-`PendingOwnershipTransfer` layout and the existing events are unchanged, so no
-migration is needed. Transfers completed before this change have no history
-entries; the history starts with the first transition after the upgrade.
+All additions (`reject_ownership_transfer`, `expire_ownership_transfer`, `is_ownership_transfer_expired`, `ownership_transfer_time_remaining`) are purely additive on `shared::auth`. Existing `KEY_ADMIN`, `KEY_PENDING_OWNER`, `PendingOwnershipTransfer`, and `Role::Admin` storage layouts and behaviors are preserved unchanged.
