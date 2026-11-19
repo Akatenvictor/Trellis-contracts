@@ -23,15 +23,20 @@ pub mod dry_run_policy;
 pub mod dashboard;
 pub mod degradation;
 pub mod degraded_mode;
+pub mod deterministic_sort;
 pub mod diagnostics;
 pub mod disclosure;
+pub mod duplicate_suppression;
 pub mod error_taxonomy;
 pub mod errors;
 pub mod event_dead_letter;
+pub mod event_schema_drift;
 pub mod events;
 pub mod evidence;
 pub mod external_evidence;
+pub mod failure_registry;
 pub mod export;
+pub mod failure_fixtures;
 pub mod feature_flags;
 pub mod health;
 pub mod health_guard;
@@ -40,6 +45,7 @@ pub mod idempotency;
 pub mod impersonation;
 pub mod import;
 pub mod init_rollback;
+pub mod input_limits;
 pub mod invariants;
 pub mod jobs;
 pub mod lifecycle;
@@ -47,8 +53,10 @@ pub mod lifecycle_events;
 pub mod maintainer_approval;
 pub mod math;
 pub mod migration;
+pub mod notification_dedup;
 pub mod operational_metadata;
 pub mod operator_runbook;
+pub mod ownership_history;
 pub mod pagination;
 pub mod payments;
 pub mod policy;
@@ -61,6 +69,7 @@ pub mod protocol_changelog;
 pub mod quota;
 pub mod reconciliation;
 pub mod recovery;
+pub mod release_artifacts;
 pub mod release_readiness;
 pub mod replay;
 pub mod resumable_repair;
@@ -70,6 +79,8 @@ pub mod retention;
 pub mod sanitize;
 pub mod scan_guard;
 pub mod semantic;
+pub mod session_revocation;
+pub mod side_effect_checkpoint;
 pub mod snapshot;
 pub mod snapshot_restore;
 pub mod storage;
@@ -79,6 +90,7 @@ pub mod telemetry;
 pub mod timeline;
 pub mod time_window;
 pub mod utils;
+pub mod versioned_replay;
 pub mod webhook;
 pub mod workflow_correlation;
 // Re-export the most commonly-needed items at crate root for ergonomic use.
@@ -116,10 +128,25 @@ aggregate_events, is_fully_suppressed, is_safe_dimension, is_sensitive_dimension
 AggregateBucket, AnalyticsReport, PrivacyConfig, RawObservation, ANALYTICS_METRIC_VERSION,
 };
 pub use auth::{
-accept_ownership_transfer, cancel_ownership_transfer, get_admin,
-get_pending_ownership_transfer, has_permission, initialize_admin, propose_ownership_transfer,
+accept_ownership_transfer, cancel_ownership_transfer, expire_ownership_transfer, get_admin,
+get_pending_ownership_transfer, has_permission, initialize_admin, is_ownership_transfer_expired,
+ownership_transfer_time_remaining, propose_ownership_transfer, reject_ownership_transfer,
 require_admin, require_not_paused, require_permission, role_for_permission, set_admin,
 PendingOwnershipTransfer, Permission, Role,
+};
+pub use admin_config_audit::{
+    compute_evidence_hash, get_config_evidence, latest_config_version, record_config_change,
+    rollback_config_change, verify_config_evidence, AdminConfigEvidence, ConfigEvidenceStatus,
+};
+pub use session_revocation::{
+    derive_token_id, get_session_token, get_subject_security_state, issue_session_token,
+    revoke_session_token, trigger_security_revocation, validate_session_token, SecurityEventKind,
+    SessionToken, SubjectSecurityState, TokenStatus,
+};
+pub use side_effect_checkpoint::{
+    begin_side_effect, commit_side_effect, derive_effect_id, fail_side_effect,
+    get_side_effect_checkpoint, rollback_side_effect, BeginEffectOutcome, SideEffectCheckpoint,
+    SideEffectKind, SideEffectState, DEFAULT_MAX_EFFECT_RETRIES,
 };
 pub use backfill::{
 advance_checkpoint, begin_backfill, clear_checkpoint, complete_backfill, dedupe_items,
@@ -458,9 +485,15 @@ pub use snapshot_restore::{
 #[cfg(test)]
 mod test_reconciliation;
 #[cfg(test)]
+mod test_failure_registry;
+#[cfg(test)]
 mod test_replay;
 #[cfg(test)]
 mod test_auth;
+#[cfg(test)]
+mod test_ownership_history;
+#[cfg(test)]
+mod test_permission_visibility;
 #[cfg(test)]
 mod test_client;
 #[cfg(test)]
@@ -469,6 +502,8 @@ mod test_disclosure;
 mod test_import;
 #[cfg(test)]
 mod test_jobs;
+#[cfg(test)]
+mod test_job_cancellation;
 #[cfg(test)]
 mod test_pagination;
 #[cfg(test)]
