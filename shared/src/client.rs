@@ -204,6 +204,8 @@ pub fn format_client_error(
         ErrorDomain::Import => symbol_short!("import"),
         ErrorDomain::Export => symbol_short!("export"),
         ErrorDomain::SupportAccess => symbol_short!("support"),
+        ErrorDomain::Jobs => symbol_short!("jobs"),
+        ErrorDomain::FeatureFlags => symbol_short!("flags"),
     };
 
     let cat_sym = match info.category {
