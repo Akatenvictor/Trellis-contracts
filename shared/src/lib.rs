@@ -32,6 +32,7 @@ pub mod event_dead_letter;
 pub mod events;
 pub mod evidence;
 pub mod external_evidence;
+pub mod failure_registry;
 pub mod export;
 pub mod failure_fixtures;
 pub mod feature_flags;
@@ -51,6 +52,7 @@ pub mod math;
 pub mod migration;
 pub mod operational_metadata;
 pub mod operator_runbook;
+pub mod ownership_history;
 pub mod pagination;
 pub mod payments;
 pub mod policy;
@@ -452,9 +454,15 @@ pub use snapshot_restore::{
 #[cfg(test)]
 mod test_reconciliation;
 #[cfg(test)]
+mod test_failure_registry;
+#[cfg(test)]
 mod test_replay;
 #[cfg(test)]
 mod test_auth;
+#[cfg(test)]
+mod test_ownership_history;
+#[cfg(test)]
+mod test_permission_visibility;
 #[cfg(test)]
 mod test_client;
 #[cfg(test)]
@@ -463,6 +471,8 @@ mod test_disclosure;
 mod test_import;
 #[cfg(test)]
 mod test_jobs;
+#[cfg(test)]
+mod test_job_cancellation;
 #[cfg(test)]
 mod test_pagination;
 #[cfg(test)]

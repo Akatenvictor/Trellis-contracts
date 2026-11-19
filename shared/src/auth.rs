@@ -164,6 +164,15 @@ pub fn propose_ownership_transfer(
         if now <= existing.expiry {
             return Err(Error::TransferAlreadyPending);
         }
+        // The stale proposal is about to be overwritten; keep a record of it.
+        crate::ownership_history::record_ownership_action(
+            env,
+            crate::ownership_history::OwnershipAction::Expired,
+            current_owner,
+            &existing.current_owner,
+            &existing.target_owner,
+            existing.expiry,
+        );
     }
 
     let transfer = PendingOwnershipTransfer {
@@ -191,6 +200,15 @@ pub fn propose_ownership_transfer(
         after_hash,
     );
 
+    crate::ownership_history::record_ownership_action(
+        env,
+        crate::ownership_history::OwnershipAction::Proposed,
+        current_owner,
+        current_owner,
+        target_owner,
+        expiry,
+    );
+
     env.events().publish(
         (symbol_short!("auth"), symbol_short!("own_prop")),
         (current_owner.clone(), target_owner.clone(), expiry),
@@ -215,7 +233,17 @@ pub fn accept_ownership_transfer(env: &Env, caller: &Address) -> Result<(), Erro
 
     let now = env.ledger().timestamp();
     if now > transfer.expiry {
+        // Inside a contract invocation this error rolls back both writes; use
+        // `ownership_history::expire_ownership_transfer` for durable cleanup.
         env.storage().instance().remove(&KEY_PENDING_OWNER);
+        crate::ownership_history::record_ownership_action(
+            env,
+            crate::ownership_history::OwnershipAction::Expired,
+            caller,
+            &transfer.current_owner,
+            &transfer.target_owner,
+            transfer.expiry,
+        );
         return Err(Error::TransferExpired);
     }
 
@@ -248,6 +276,15 @@ pub fn accept_ownership_transfer(env: &Env, caller: &Address) -> Result<(), Erro
         Symbol::new(env, "acpt_own"),
         before_hash,
         after_hash,
+    );
+
+    crate::ownership_history::record_ownership_action(
+        env,
+        crate::ownership_history::OwnershipAction::Accepted,
+        caller,
+        &transfer.current_owner,
+        &transfer.target_owner,
+        transfer.expiry,
     );
 
     env.events().publish(
@@ -284,6 +321,15 @@ pub fn cancel_ownership_transfer(env: &Env, caller: &Address) -> Result<(), Erro
         Symbol::new(env, "canc_own"),
         before_hash,
         after_hash,
+    );
+
+    crate::ownership_history::record_ownership_action(
+        env,
+        crate::ownership_history::OwnershipAction::Cancelled,
+        caller,
+        &transfer.current_owner,
+        &transfer.target_owner,
+        transfer.expiry,
     );
 
     env.events().publish(
