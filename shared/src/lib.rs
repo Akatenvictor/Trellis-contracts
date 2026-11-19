@@ -1,7 +1,7 @@
 #![no_std]
 pub mod abuse;
 pub mod accessibility;
-pub mod admin_config_audit;
+pub mod allowlist;
 pub mod analytics;
 pub mod audit_ledger;
 pub mod auth;
@@ -98,6 +98,15 @@ pub use abuse::{
     assess_high_impact_abuse, evaluate_high_impact_abuse, get_abuse_policy, get_abuse_state,
     is_abuse_blocked, record_abuse, set_abuse_policy, AbusePolicy, AbuseState,
     HighImpactAbuseContext,
+};
+pub use allowlist::{
+    add_allowed_destination, add_allowed_extension, add_allowed_host,
+    default_policy as default_allowlist_policy, get_policy as get_allowlist_policy,
+    remove_allowed_destination, remove_allowed_extension, remove_allowed_host,
+    restore_policy as restore_allowlist_policy,
+    validate_destination as validate_allowlisted_destination,
+    validate_url as validate_allowlisted_url, AllowlistError, AllowlistPolicy,
+    MAX_ALLOWLIST_ENTRIES, MAX_EXTENSION_LEN, MAX_HOST_LEN,
 };
 pub use risk_scoring::{
     assess_and_record, evaluate_risk, get_actor_profile, get_risk_policy, reset_actor_risk,
@@ -460,8 +469,8 @@ pub use bounded_cache::{
     TOPIC_CACHE_EVICT,
 };
 pub use dry_run_policy::{
-    dry_run_evaluate, DryRunError, DryRunReport, DryRunSummary, ImpactKind, RecordSnapshot,
-    RecordVerdict, MAX_DRY_RUN_RECORDS, TOPIC_DRY_RUN,
+    dry_run_evaluate, DryRunError, DryRunReport as PolicyDryRunReport, DryRunSummary, ImpactKind,
+    RecordSnapshot, RecordVerdict, MAX_DRY_RUN_RECORDS, TOPIC_DRY_RUN,
 };
 pub use utils::{is_expired, now};
 pub use snapshot_restore::{
