@@ -97,6 +97,10 @@ pub mod webhook;
 pub mod workflow_correlation;
 pub mod workflow_failure_injection;
 pub mod user_facing_degraded_status;
+pub mod upgrade_compat_snapshot;
+pub mod event_pagination;
+pub mod treasury_conservation;
+pub mod auth_fingerprint;
 #[cfg(test)]
 pub mod test_boundary_properties;
 // Re-export the most commonly-needed items at crate root for ergonomic use.
