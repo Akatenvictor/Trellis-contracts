@@ -140,9 +140,9 @@ ownership_transfer_time_remaining, propose_ownership_transfer, reject_ownership_
 require_admin, require_not_paused, require_permission, role_for_permission, set_admin,
 PendingOwnershipTransfer, Permission, Role,
 };
-pub use admin_config_audit::{
-    compute_evidence_hash, get_config_evidence, latest_config_version, record_config_change,
-    rollback_config_change, verify_config_evidence, AdminConfigEvidence, ConfigEvidenceStatus,
+pub use config_audit::{
+    apply_sensitive_config_change, get_config_audit_evidence, get_sensitive_config_value,
+    rollback_config_change, verify_config_audit_chain, ConfigAuditEvidence, ConfigAuditError,
 };
 pub use session_revocation::{
     derive_token_id, get_session_token, get_subject_security_state, issue_session_token,
