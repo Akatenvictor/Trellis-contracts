@@ -80,8 +80,12 @@ pub mod rollout_guard;
 pub mod retention;
 pub mod sanitize;
 pub mod scan_guard;
+pub mod schema_evolution;
 pub mod semantic;
 pub mod session_revocation;
+pub mod signed_audit_receipt;
+pub mod dry_run_repair;
+pub mod synthetic_monitoring;
 pub mod side_effect_checkpoint;
 pub mod snapshot;
 pub mod snapshot_restore;
@@ -99,6 +103,8 @@ pub mod workflow_failure_injection;
 pub mod user_facing_degraded_status;
 #[cfg(test)]
 pub mod test_boundary_properties;
+#[cfg(test)]
+pub mod test_schema_compat;
 // Re-export the most commonly-needed items at crate root for ergonomic use.
 pub use abuse::{
     assess_high_impact_abuse, evaluate_high_impact_abuse, get_abuse_policy, get_abuse_state,
