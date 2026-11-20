@@ -3,6 +3,7 @@ pub mod abuse;
 pub mod accessibility;
 pub mod allowlist;
 pub mod analytics;
+pub mod admin_config_audit;
 pub mod audit_ledger;
 pub mod auth;
 pub mod backfill;
